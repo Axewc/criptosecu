@@ -24,8 +24,14 @@ contacto_email=$(grep -i 'Registrant Email:' temp.txt | awk '{print $3}')
 contacto_telefono=$(grep -i 'Registrant Phone:' temp.txt | awk '{print $3}')
 ip=$(dig +short $1 | head -1)
 
+
+# Imprimir información del dominio
+#cat temp.txt
+# imprimie los primeros caracteres de temp.txt usando head
+head -c 1300 temp.txt
+
 # Comprobar la conectividad de la red
-ping -c 4 $1 > ping.txt
+ping -c 4 -w 5 $1 > ping.txt
 connectivity=$(cat ping.txt | tail -1)
 
 # Medir la latencia
@@ -40,45 +46,7 @@ else
     max_latency="No disponible"
 fi
 
-# Obtener información de la IP
-ip_info=$(whois $ip)
-
-# Extraer campos específicos del archivo temporal
-segmentos_ip=$(grep -i 'inetnum:' <<< "$ip_info" | awk '{print $2}')
-disponibilidad=$(grep -i 'status:' <<< "$ip_info" | awk '{print $2}')
-
-# Buscar registros IPv4 e IPv6
-ipv4=$(dig $1 A +short)
-ipv6=$(dig $1 AAAA +short)
-
-# Registros reversos
-reverse_ipv4=$(dig -x $ipv4 +short)
-reverse_ipv6=$(dig -x $ipv6 +short)
-
-# La ruta y los saltos para llegar al dominio
-tracert=$(traceroute -w 1000 $1)
-
-# Enumerar las DNS
-dns=$(host -t ns $1)
-
-# Puertos, estados y servicios
-nmap_output=$(nmap $1)
-open_ports=$(grep -i 'open' <<< "$nmap_output")
-
-# Imprimir información del dominio
-echo "Nombre del dominio: $nombre_dominio"
-echo "Fecha de creación: $creado"
-echo "Fecha de actualización: $actualizado"
-echo "Fecha de expiración: $expiracion"
-echo "Organización: $organizacion"
-echo "País: $pais"
-echo "Estado: $estado"
-echo "Ciudad: $ciudad"
-echo "Calle: $calle"
-echo "Código postal: $codigo_postal"
-echo "Nombre de contacto: $contacto_nombre"
-echo "Email de contacto: $contacto_email"
-echo "Teléfono de contacto: $contacto_telefono"
+####
 
 # Comprobar la conectividad de la red
 echo "Comprobando la conectividad de la red..."
@@ -96,6 +64,9 @@ host $nombre_dominio
 echo "Obteniendo información de puertos..."
 nmap $nombre_dominio
 
-echo "que pasaaa"
 # Eliminar archivo temporal
-rm temp.txt
+# rm temp.txt
+
+# Eliminar archivo temporal
+# rm ping.txt
+
