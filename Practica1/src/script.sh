@@ -5,68 +5,82 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-# Obtener información de whois
+#Recibimos el dominio y vamos a usar whois para obtener la info
 whois $1 > temp.txt
 
-# Extraer campos específicos del archivo temporal
-nombre_dominio=$(grep -i 'domain name:' temp.txt | awk '{print $3}')
-creado=$(grep -i 'Creation Date:' temp.txt | awk '{print $3}')
-actualizado=$(grep -i 'Updated Date:' temp.txt | awk '{print $3}')
-expiracion=$(grep -i 'Expiration Date:' temp.txt | awk '{print $3}')
-organizacion=$(grep -i 'Registrant Organization:' temp.txt | awk '{print $3}')
-pais=$(grep -i 'Registrant Country:' temp.txt | awk '{print $3}')
-estado=$(grep -i 'Registrant State/Province:' temp.txt | awk '{print $3}')
-ciudad=$(grep -i 'Registrant City:' temp.txt | awk '{print $3}')
-calle=$(grep -i 'Registrant Street:' temp.txt | awk '{print $3}')
-codigo_postal=$(grep -i 'Registrant Postal Code:' temp.txt | awk '{print $3}')
-contacto_nombre=$(grep -i 'Registrant Name:' temp.txt | awk '{print $3}')
-contacto_email=$(grep -i 'Registrant Email:' temp.txt | awk '{print $3}')
-contacto_telefono=$(grep -i 'Registrant Phone:' temp.txt | awk '{print $3}')
-ip=$(dig +short $1 | head -1)
+
+#Extraer datos basicos del punto 1-4
+echo "Analisis de $1:" >> $1.txt
+grep -m 1 "Domain" temp.txt >> $1.txt
+grep -m 1 "Created" temp.txt >> $1.txt
+grep -m 1 "Last" temp.txt >> $1.txt
+grep -m 1 "Expiration" temp.txt >> $1.txt
+sed -n '/Registrant:/,/Name Servers:/ {/Name Servers:/d; p}' temp.txt >> $1.txt
+echo "" >>$1.txt
+#Recibimos ahora conectividad de red
+echo "******Conectividad de la red:******" >> $1.txt
+ping -c 4 $1 >> ping.txt 
+cat ping.txt >> $1.txt
+echo "" >>$1.txt
+
+# Medir latencia
+echo "******Latencia:*******" >> $1.txt
+min=$(grep "min/avg/max" ping.txt | awk '{print $4}' | cut -d '/' -f 1)
+avg=$(grep "min/avg/max" ping.txt | awk '{print $4}' | cut -d '/' -f 2) 
+max=$(grep "min/avg/max" ping.txt | awk '{print $4}' | cut -d '/' -f 3)
+echo "min=$min" >> $1.txt
+echo "avg=$avg" >> $1.txt
+echo "max=$max" >> $1.txt
+echo "" >>$1.txt
+
+rm ping.txt
+#La IP publica y sus segmentos 
+echo "******IP publica y sus segmentos:******" >> $1.txt
+nslookup $1 >> $1.txt
+echo "" >>$1.txt
+
+#Registros de disponibilidad 
+echo "****** Registros de disponibilidad ******" >> $1.txt 
+curl -s -o /dev/null -w "%{http_code}\n" $1 >> $1.txt
+echo "" >>$1.txt
+
+#Registro IPv4 e IPv6 
+echo "*******Registros IPv4 e IPv6*******" >> $1.txt
+echo "-------IPv4-------" >> $1.txt
+host -t A $1 >> $1.txt
+echo "" >> $1.txt
+echo "-------IPv6-------" >> $1.txt
+host -t AAAA $1 >> $1.txt
+echo " " >> $1.txt
+
+#Registros reversos 
+echo "******Registros reversos:******" >> $1.txt
+host $1 >> $1.txt
+echo " " >> $1.txt
+
+#Ruta y los saltos para llegar al dominio 
+echo "****** Ruta y saltos ******" >> $1.txt
+traceroute $1 >> $1.txt
+echo " " >> $1.txt
+
+#Enumerar lo DNS 
+echo "******Enumeración de DNS******" >> $1.txt
+echo "-----Usando dig ------" >> $1.txt
+dig +nocmd $1  >> $1.txt 
+echo " " >> $1.txt
+echo "------Usando dnsrecon -------" >> $1.txt
+dnsrecon -d $1 -t std >> $1.txt
+echo " " >> $1.txt
+
+#Puertos, estados y servicios 
+echo "******Puertos, estados y servicios******" >> $1.txt
+nmap $1 >> $1.txt
 
 
-# Imprimir información del dominio
-#cat temp.txt
-# imprimie los primeros caracteres de temp.txt usando head
-head -c 1300 temp.txt
+#Ya que no necesitamos más datos de este 
+rm temp.txt
 
-# Comprobar la conectividad de la red
-ping -c 4 -w 5 $1 > ping.txt
-connectivity=$(cat ping.txt | tail -1)
-
-# Medir la latencia
-if [[ $connectivity == "4 received"* ]]
-then
-    min_latency=$(cat ping.txt | grep "min/avg/max" | awk '{print $4}' | cut -d '/' -f 1)
-    avg_latency=$(cat ping.txt | grep "min/avg/max" | awk '{print $4}' | cut -d '/' -f 2)
-    max_latency=$(cat ping.txt | grep "min/avg/max" | awk '{print $4}' | cut -d '/' -f 3)
-else
-    min_latency="No disponible"
-    avg_latency="No disponible"
-    max_latency="No disponible"
-fi
-
-####
-
-# Comprobar la conectividad de la red
-echo "Comprobando la conectividad de la red..."
-ping -c 5 $nombre_dominio
-
-#Medir la latencia
-echo "Midiendo la latencia..."
-traceroute $nombre_dominio
-
-# Obtener información de DNS
-echo "Obteniendo información de DNS..."
-host $nombre_dominio
-
-# Obtener información de puertos
-echo "Obteniendo información de puertos..."
-nmap $nombre_dominio
-
-# Eliminar archivo temporal
-# rm temp.txt
-
-# Eliminar archivo temporal
-# rm ping.txt
+cat $1.txt
+#Descomentar en caso de no querer almacenar la info completa
+#rm $1.txt
 
