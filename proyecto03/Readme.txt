@@ -12,6 +12,7 @@ Proyecto03
  |____storeXxs.php
  |____style.css
  |____README.txt
+ |____Reporte_Practica03.pdf
  |____📁seguros
         |____reflectedxssecure.php
         |____sotrexssecure.php
